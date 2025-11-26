@@ -1,0 +1,13 @@
+.env
+1-create-job.sh
+2-create-scheduler.sh
+
+.gitignore
+.aider*
+NOT-USED/
+
+**/#*.*#
+**/*.*~
+**/#*#
+**/*~
+
