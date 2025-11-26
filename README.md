@@ -40,7 +40,7 @@ Now, instead of
 
 And I get the correct image.
 
-Example:
+Example (this image is not up to date!):
 
   ![GitHub stats](./img/my-statically-generated-stats-image.svg)
 
