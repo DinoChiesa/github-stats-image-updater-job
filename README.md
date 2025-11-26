@@ -111,7 +111,7 @@ To test the container locally, you must have [gcloud CLI](https://docs.cloud.goo
 
    If using docker CLI:
    ```sh
-   podman build -t ghub-stats-updater-job:latest .
+   docker build -t ghub-stats-updater-job:latest .
    ```
 
    If using [podman](https://podman.io/) CLI:
