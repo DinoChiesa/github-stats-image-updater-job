@@ -1,92 +1,85 @@
 #!/bin/bash
 # -*- mode:shell-script; coding:utf-8; sh-shell:bash -*-
 
+# To run this locally, this works:
+#
+# mkdir -p /tmp/gcloudcreds/configurations
+# cp ~/.config/gcloud/credentials.db /tmp/gcloudcreds
+# cp ~/.config/gcloud/access_tokens.db /tmp/gcloudcreds
+# cp ~/.config/gcloud/configurations/config_default /tmp/gcloudcreds/configurations
+# cp ~/.config/gcloud/active_config /tmp/gcloudcreds
+#
+# podman build -t ghub-stats-updater-job:latest .
+# 
+# podman run -it --rm \
+#   -v "/tmp/gcloudcreds:/root/.config/gcloud:rw" \
+#   -e RUNNING_LOCALLY=true \
+#   -e GH_PAT_SECRET_NAME=GitHub-PAT \
+#   -e PROJECT_ID=my-gcp-project \
+#   -e TARGET_SA=$TARGET_SA \
+#   -e SERVICE_URL=https://my-github-stats-service-1234567890.us-central1.run.app \
+#   -e USER_EMAIL=email-for-use-with-git-commit@example.com \
+#   -e GH_USER=YourGithubUserName \
+#   ghub-stats-updater-job:latest
+
 source ./shlib/utils.sh
 
 # ====================================================================
 printf "\nThis script generates a new image for Github Stats, and commits it to the repo.\n"
 
-check_shell_variables GH_PAT_SECRET_NAME
+check_shell_variables GH_PAT_SECRET_NAME SERVICE_URL USER_EMAIL GH_USER
 
-# --- Impersonation Logic Start ---
-# Check if we are running in local docker (i.e., if the mounted ADC file exists)
-if [[ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]]; then
-
-  printf "We think we are running locally...\n"
-  printf "\nADC:\n"
-  cat "$GOOGLE_APPLICATION_CREDENTIALS"
-  printf "\n\n"
+# Check if we are running in local docker
+if [[ -n "$RUNNING_LOCALLY" ]]; then
+  printf "Running locally; using explicit service account impersonation...\n"
   check_shell_variables PROJECT_ID TARGET_SA
-
-  # --- 1. Use ADC to Generate the Impersonated Token ---
-
-  # once for diagnostics
-  gcloud auth print-access-token \
-    --impersonate-service-account="$TARGET_SA" \
-    --lifetime=180s
-
-  # second time to capture the token
-  IMPERSONATED_ACCESS_TOKEN=$(gcloud auth print-access-token \
-    --impersonate-service-account="$TARGET_SA" \
-    --lifetime=180s)
-
-  if [ -z "$IMPERSONATED_ACCESS_TOKEN" ]; then
-    echo "FATAL: Could not generate impersonated token. Check 'Service Account Token Creator' role on user."
-    exit 1
-  fi
-
-  echo "Impersonated token generated successfully."
-
-  # --- 2. Force gcloud CLI to use the Token and Project ID ---
-  # Sets the token for all subsequent gcloud commands
-  gcloud config set access_token $IMPERSONATED_ACCESS_TOKEN
-
   # Sets the project context for subsequent gcloud commands
   gcloud config set core/project $PROJECT_ID
-
-  echo "THiS NEVER WoRKeD"
-  # I guess I still need this?
-  gcloud config set auth/impersonate_service_account $TARGET_SA
-  echo "Successfully set impersonation for gcloud commands."
+  ID_TOKEN=$(gcloud auth print-identity-token --impersonate-service-account=$TARGET_SA --audiences=${SERVICE_URL})
 else
   echo "Running in Cloud Run or production environment. Using default service identity."
+  ID_TOKEN=$(gcloud auth print-identity-token)
 fi
-# --- Impersonation Logic End ---
 
-# 1. Fetch secret and configure git
-TOKEN=$(gcloud secrets versions access latest --secret="$GH_PAT_SECRET_NAME")
+# For diagnostics purposes
+curl https://www.googleapis.com/oauth2/v3/tokeninfo\?id_token=$ID_TOKEN
+
+# Fetch secret and configure git
+GH_TOKEN=$(gcloud secrets versions access latest --secret="$GH_PAT_SECRET_NAME")
 git config --global user.name "Github stats updater bot"
-git config --global user.email "dpchiesa@hotmail.com"
+git config --global user.email "$USER_EMAIL"
 
 # 2. Clone the repo
-git clone https://x-access-token:${TOKEN}@github.com/DinoChiesa/DinoChiesa.git
+git clone https://x-access-token:${GH_TOKEN}@github.com/${GH_USER}/${GH_USER}.git
 cd DinoChiesa
 
 mkdir -p img
-# generate a new image and save to a file
-SERVICE_URL=https://my-github-stats-service-511582533367.us-west1.run.app
-TOKEN=$(gcloud auth print-identity-token)
 
-# For diagnostics purposes
-# curl -i https://www.googleapis.com/oauth2/v3/tokeninfo\?id_token=$TOKEN
+# generate a new image and save to a file
+IMG_FILE=./img/my-statically-generated-stats-image.svg
+
+# In your README.md, you should have:
+# ![GitHub stats](./img/my-statically-generated-stats-image.svg)
 
 HTTP_STATUS=$(curl -s -w "%{http_code}" \
-  -H "Authorization: Bearer $TOKEN" \
-  "${SERVICE_URL}/api?username=DinoChiesa&count_private=true" \
-  -o ./img/my-statically-generated-stats-image.svg)
+  -H "Authorization: Bearer $ID_TOKEN" \
+  "${SERVICE_URL}/api?username=${GH_USER}&count_private=true" \
+  -o $IMG_FILE)
 
 if [[ "$HTTP_STATUS" -ne 200 ]]; then
-    echo "Error: curl command failed to get stats image. status: $HTTP_STATUS"
-    exit 1
+  echo "Error: curl command failed to get stats image. status: $HTTP_STATUS"
+  exit 1
 fi
 
+# Diagnostics
 ls -l ./img
 
-# 4. Commit and push the change (if any)
-if [[ -n $(git status --porcelain ./img/my-statically-generated-stats-image.svg) ]]; then
-  printf "The stats image has changed. Committing...\n"
-  git add ./img/my-statically-generated-stats-image.svg
-  git commit -m "docs: Update GitHub stats image" && git push
+# Commit and push the change (if any)
+if [[ -n $(git status --porcelain $IMG_FILE) ]]; then
+  printf "Committing the updated stats image...\n"
+  git add $IMG_FILE
+  git commit -m "docs: Update GitHub stats image"
+  git push
 else
   printf "The stats image has not changed. Nothing to do.\n"
 fi
