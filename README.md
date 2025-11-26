@@ -57,9 +57,9 @@ The job is just [a shell script](./update-stats-image.sh). It follows this logic
 
 ## Setup
 
-You can configure this job yourself, for your own repo. 
+You can configure this job yourself, for your own repo.
 It  depends on an image generation service as provided by [this repo](https://github.com/DinoChiesa/github-readme-stats).
-So you need to first set that up! 
+So you need to first set that up!
 
 Once you do that, then...:
 
@@ -132,6 +132,10 @@ To test the container locally, you must have [gcloud CLI](https://docs.cloud.goo
    ```
 
 6. Create a Github PAT with read+write access to your home repo. And register it as a Google Cloud Secret.
+
+   Create the Personal Access Token, following [the instructions on GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
+
+   Then, register it:
    ```sh
    SECRET_NAME=GitHub-PAT-1
    gcloud secrets create $SECRET_NAME \
@@ -169,6 +173,11 @@ To test the container locally, you must have [gcloud CLI](https://docs.cloud.goo
      ghub-stats-updater-job:latest
    ```
 
+   Or, with docker:
+   ```sh
+   docker run -it --rm  ...as above...
+   ```
+
 
 ## Disclaimer
 
@@ -188,4 +197,3 @@ Cloud.  If you need assistance, you can try inquiring on [the Google Cloud
 Community forums dedicated to Cloud
 Run](https://discuss.google.dev/c/google-cloud/cloud-serverless/83) There is no
 service-level guarantee for responses to inquiries posted to that site.
-
