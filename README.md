@@ -1,9 +1,9 @@
 # Summary
 
 This is a Cloud Run job that invokes a service to generate a github stats image,
-then updates my own github repo with the updated image.
+then updates my own (or your own) GitHub repo with the updated image.
 
-I built this because the github-readme-stats vercel app hosted by Anurag Hazra,
+I built this because the [github-readme-stats vercel app](https://github-readme-stats.vercel.app) hosted by Anurag Hazra,
 is shared and apparently is experiencing overuse or 503s.
 
 Anurag had (has?) a service that generates an image that you can include in your own personal README.md,
@@ -13,15 +13,19 @@ available at github.com/YourUserName/YourUserName . The markup you need to use t
   ![GitHub stats](https://github-readme-stats.vercel.app/api?username=YourGithubUserName&count_private=true)
 ```
 
-But the service is shared and currently is returning 503, which means you get no image.
+But the service is shared and currently (2025 November) is returning 503, which means you get no image.
 
 So, I did this:
 
-- Cloned https://github.com/anuraghazra/github-readme-stats
-- Stood it up as a Cloud Run SERVICE, which requires authentication and scales to 0.
-  See [this repo](https://github.com/DinoChiesa/github-readme-stats).
-- Created this Cloud Run JOB, which invokes the service, saves the generated svg file, and pushes the updated image to my own repo
-- Configured the job to run on a schedule, once nightly
+- Cloned Anurag's repo https://github.com/anuraghazra/github-readme-stats
+
+- Made a few changes (See [this repo](https://github.com/DinoChiesa/github-readme-stats)) to
+  stand it up as Cloud Run SERVICE, which requires authentication, and scales to 0.
+
+- Created this Cloud Run JOB, which invokes the service, saves the generated svg
+  file, and pushes the updated image to my own repo.
+
+- Configured the job to run on a schedule, once nightly.
 
 
 Now, instead of
@@ -29,10 +33,18 @@ Now, instead of
   ![GitHub stats](https://github-readme-stats.vercel.app/api?username=DinoChiesa&count_private=true)
 ```
 
-...my Readme now has this markup:
+...my Readme has this markup:
 ```
   ![GitHub stats](./img/my-statically-generated-stats-image.svg)
 ```
+
+And I get the correct image.
+
+Example:
+
+  ![GitHub stats](./img/my-statically-generated-stats-image.svg)
+
+
 
 ## Details
 
@@ -43,10 +55,13 @@ The job is just [a shell script](./update-stats-image.sh). It follows this logic
 - Invoke the service with the identity token, saving the generated svg file.
 - If changed, commit the changed image
 
-This job depends on an image generation service as provided by [this repo](https://github.com/DinoChiesa/github-readme-stats).
-
-
 ## Setup
+
+You can configure this job yourself, for your own repo. 
+It  depends on an image generation service as provided by [this repo](https://github.com/DinoChiesa/github-readme-stats).
+So you need to first set that up! 
+
+Once you do that, then...:
 
 1. Set up your environment. Edit [the env-sample file](./env-sample.sh).
    Save it as "env.sh".
@@ -165,3 +180,12 @@ official Google product.
 This material is [Copyright © 2025 Google LLC](./NOTICE).
 and is licensed under the [Apache 2.0 License](LICENSE). This includes the Java
 code as well as the API Proxy configuration.
+
+## Support
+
+This example is open-source software, and is not a supported part of Google
+Cloud.  If you need assistance, you can try inquiring on [the Google Cloud
+Community forums dedicated to Cloud
+Run](https://discuss.google.dev/c/google-cloud/cloud-serverless/83) There is no
+service-level guarantee for responses to inquiries posted to that site.
+
