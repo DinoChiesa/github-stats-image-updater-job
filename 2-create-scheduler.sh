@@ -6,15 +6,13 @@ SCHEDULER_JOB_NAME="gstats-updater-sched"
 
 source ./shlib/utils.sh
 
-SA_REQUIRED_ROLES=("roles/run.invoker")
-
-maybe_add_role() {
+maybe_add_invoker_role() {
   local sa_email project job_name region role user_member
   sa_email="$1"
   project="$2"
   job_name="$3"
   region="$4"
-  role="$5"
+  role="roles/run.invoker"
   user_member="serviceAccount:${sa_email}"
 
   printf "Checking for existing binding for %s on %s...\n" "${user_member}" "${project}"
@@ -80,7 +78,9 @@ SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 printf "For the scheduler, the Service Account email will be:\n  %s\n" "$SA_EMAIL"
 
 printf "The scheduler Service Account needs run.invoker on that Cloud Run Job.\n"
-printf "This would have already been set up.\n"
+printf "This should have already been set up, but let's make sure.\n"
+
+maybe_add_invoker_role "$SA_EMAIL" "$CLOUDRUN_PROJECT_ID" "$JOB_NAME" "$JOB_REGION"
 
 printf "Checking and maybe Creating the scheduler job...\n"
 maybe_create_sched_job \
