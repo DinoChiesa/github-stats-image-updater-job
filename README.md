@@ -3,8 +3,9 @@
 This is a Cloud Run job that invokes a service to generate a github stats image,
 then updates my own (or your own) GitHub repo with the updated image.
 
-I built this because the [github-readme-stats vercel app](https://github-readme-stats.vercel.app) hosted by Anurag Hazra,
-is shared and apparently is experiencing overuse or 503s.
+I built this because the [github-readme-stats vercel
+app](https://github-readme-stats.vercel.app) hosted by Anurag Hazra, is shared
+and apparently is experiencing overuse or 503s.
 
 Anurag had (has?) a service that generates an image that you can include in your own personal README.md,
 available at github.com/YourUserName/YourUserName . The markup you need to use that service is:
@@ -25,7 +26,7 @@ So, I did this:
 - Created this Cloud Run JOB, which invokes the service, saves the generated svg
   file, and pushes the updated image to my own repo.
 
-- Configured the job to run on a schedule, once nightly.
+- Configured the job to run on a schedule (via a Cloud Scheduler JOB), once nightly.
 
 
 Now, instead of
@@ -58,7 +59,7 @@ The job is just [a shell script](./update-stats-image.sh). It follows this logic
 ## Setup
 
 You can configure this job yourself, for your own repo.
-It  depends on an image generation service as provided by [this repo](https://github.com/DinoChiesa/github-readme-stats).
+It depends on an image generation service as provided by [this repo](https://github.com/DinoChiesa/github-readme-stats).
 So you need to first set that up!
 
 Once you do that, then...:
